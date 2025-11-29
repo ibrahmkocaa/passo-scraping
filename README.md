@@ -1,5 +1,7 @@
 # ⚽ Passo Football Match Scraper
 
+![Passo Match Interface](assets/preview.jpg)
+
 This project is a desktop-based automation application that scrapes football events from **Passo.com.tr**, lists them in a table, and fetches detailed information (venue, date, ticket categories) for selected matches.
 
 Built using **Python**, **Selenium**, and **PySide6 (Qt)**. It features a modern, dark-themed graphical user interface (GUI).
