@@ -99,6 +99,7 @@ class DetailWorker(QThread):
             self.driver.get(self.url)
             wait = WebDriverWait(self.driver, 10)
             
+            # Wait for the main list elements to load
             wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, 'r-event-item')))
             cards = self.driver.find_elements(By.CLASS_NAME, 'r-event-item')
             
@@ -113,31 +114,55 @@ class DetailWorker(QThread):
 
             main_window = self.driver.current_window_handle
             
+            # Click the detail button (overlay)
             detail_btn = target_card.find_element(By.CLASS_NAME, "overlay-text-container")
             self.driver.execute_script("arguments[0].click();", detail_btn)
             
-            # Wait for a new tab/window to open
+            # Wait for the new tab/window to open
             wait.until(lambda d: len(d.window_handles) > 1)
             windows = self.driver.window_handles
             
             # Switch focus to the newly opened tab
             self.driver.switch_to.window(windows[-1])
             
-            # Wait for the ticket info box to appear
+            # Wait for the ticket info box to appear in the DOM
             wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'box')))
             
+            # Logic to click "Show All Categories"
+            try:
+                # Search for the span containing the Turkish text "Tüm kategorileri göster"
+                # Note: This text must remain in Turkish to match the website content.
+                expand_xpath = "//span[contains(text(), 'Tüm kategorileri göster')]"
+                
+                expand_btn = WebDriverWait(self.driver, 3).until(
+                    EC.element_to_be_clickable((By.XPATH, expand_xpath))
+                )
+                
+                self.log_message.emit("Expand button found. Clicking...")
+                self.driver.execute_script("arguments[0].click();", expand_btn)
+                
+                time.sleep(1.5)
+                
+            except Exception:
+                self.log_message.emit("Expand button not found or list already full.")
+
+            # Parse HTML content using BeautifulSoup
             soup = BeautifulSoup(self.driver.page_source, 'html.parser')
             sidebar_div = soup.select_one('div.col-md-4.ticket-info')
             
             match_data = {"date": "N/A", "venue": "N/A", "categories": []}
 
             if sidebar_div:
+                # Extract Date info
                 date_el = sidebar_div.select_one('.box.first ul li')
                 if date_el: match_data["date"] = date_el.get_text(strip=True)
                 
+                # Extract Venue info
                 venue_el = sidebar_div.select_one('.text-primary')
                 if venue_el: match_data["venue"] = venue_el.get_text(strip=True)
                 
+                # Extract Categories
+                # Find the icon, then move up to the parent box container
                 category_icon = sidebar_div.select_one('.passo-icon-hastag')
                 if category_icon:
                     cat_box = category_icon.find_parent('div', class_='box')
@@ -145,9 +170,10 @@ class DetailWorker(QThread):
                         items = cat_box.select('ul li')
                         for item in items:
                             txt = item.get_text(strip=True)
-                            if "Tüm kategorileri" not in txt:
+                            if "Tüm kategorileri" not in txt and "Gizle" not in txt:
                                 match_data["categories"].append(txt)
             
+            # Close the detail tab and switch back to the main list
             self.driver.close() 
             self.driver.switch_to.window(main_window)
             
