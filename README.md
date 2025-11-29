@@ -62,13 +62,12 @@ python app.py
 
 ## 📂 File Structure
 
-'''text
+
 passo-match-bot/
 │
 ├── app.py               # Main entry point, GUI, and Scraper Workers
 ├── seleniumDriver.py    # Selenium WebDriver configuration and options
 └── README.md            # Project documentation
-'''
 
 ## ⚠️ Disclaimer
 
